@@ -13,6 +13,9 @@ process, streams its output, and shows the current work package, hashcat's live
 speed/ETA, the cracked keys with country flags, and which of those keys actually
 map to your wpa-sec account.
 
+<img width="1901" height="876" alt="image" src="https://github.com/user-attachments/assets/35e1d98d-fb07-4c3f-b147-281acc0b6b0c" />
+
+
 * full documentation, options and caveats: **[dashboard/README.md](dashboard/README.md)**
 * Windows: double-click `start-dashboard.bat` (installs Flask, opens the browser)
 * anywhere: `pip install -r requirements.txt` then `python run_dashboard.py --open`
