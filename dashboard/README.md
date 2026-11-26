@@ -97,6 +97,13 @@ working directory, interpreter, script path, `-co/--coptions`, `-pot/--potfile`,
 `-ad/--additional`, plus the artifact poll interval, the GPU-only switch and the
 "allow client self-update" switch.
 
+A working directory that does not exist is **created** when you press Start (the
+log says so), because Windows wipes `%TEMP%` between runs and a deleted folder
+should not stop you. Keep it off `%TEMP%` anyway: the client's `.res`, `.hash` and
+`.key` files live there, and the OS can delete them *while a run is in progress* —
+the log warns you when the configured folder is inside the temp directory. Your
+cracked keys are not affected either way, they are kept in `dashboard/keys.jsonl`.
+
 ## Requirements
 
 * Python 3.8+ (tested on 3.11)
