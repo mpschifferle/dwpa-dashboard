@@ -808,6 +808,25 @@ def main():
         cleared = post_json(f"{BASE}/api/keys/clear", {})
         check("keys cleared", cleared["ok"] is True and get_json(f"{BASE}/api/state")["store"]["counts"]["keys"] == 0)
 
+        # a wiped working directory (Windows cleans %TEMP%) must be recreated
+        gone = workdir / "gone" / "deeper"
+        fresh_settings = Settings(workdir / "fresh-settings.json")
+        fresh_settings.update(settings.as_dict())
+        fresh_settings.update({"workdir": str(gone), "script": str(MOCK),
+                               "poll_interval": 0.2, "python": sys.executable})
+        fresh = Runner(fresh_settings, keys_store,
+                       session_log=str(workdir / "fresh.log"),
+                       probe=FakeProbe(GPU_AVAILABLE))
+        try:
+            fresh.start()
+            check("wiped working directory is recreated", gone.is_dir(), str(gone))
+            messages = [line.get("text", "") for line in fresh.logs(0).get("lines", [])]
+            check("recreation is logged",
+                  any("created the working directory" in text for text in messages),
+                  messages[:4])
+        finally:
+            fresh.stop(force=True)
+
     finally:
         runner.stop(force=True)
         runner.stop_watcher()

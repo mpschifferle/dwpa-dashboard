@@ -13,6 +13,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections import deque
@@ -183,7 +184,19 @@ class Runner():
 
         workdir = os.path.abspath(self.settings.get("workdir"))
         if not os.path.isdir(workdir):
-            raise RuntimeError(f"working directory does not exist: {workdir}")
+            # a workdir under %TEMP% gets wiped by the OS between runs; a missing
+            # folder is no reason to refuse to start, just make it again
+            try:
+                os.makedirs(workdir, exist_ok=True)
+            except OSError as exc:
+                raise RuntimeError(f"working directory does not exist and cannot be "
+                                   f"created: {workdir} ({exc})") from exc
+            self._log(f"created the working directory {workdir}", "ok")
+        if os.path.abspath(workdir).startswith(os.path.abspath(tempfile.gettempdir())):
+            # worth saying out loud: the OS may delete this mid-run
+            self._log("note: the working directory is inside the temp folder, "
+                      "which Windows may clean up; pick a normal folder in Options",
+                      "warn")
 
         # GPU only mode: never start the client unless a GPU backend is visible
         probe = self.gpu.snapshot()
