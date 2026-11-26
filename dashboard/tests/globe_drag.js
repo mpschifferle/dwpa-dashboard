@@ -163,6 +163,21 @@ const view = () => ops.frame[0];
     if (outside) fail.push(`${outside} coastline points landed outside the globe`);
     if (furthest < RADIUS - 6) fail.push(`coastline never reaches the limb (max ${furthest.toFixed(1)})`);
     if (shape.length < 20) fail.push(`clipped ring too small: ${shape.length} points`);
+
+    // the cut must follow the limb, not jump straight across the face: two
+    // consecutive points that both sit on the rim have to be one arc step apart
+    let worstHop = 0;
+    for (let index = 1; index < shape.length; index += 1) {
+      const [ax, ay] = shape[index - 1];
+      const [bx, by] = shape[index];
+      const onRim = (x, y) => Math.hypot(x - WIDTH / 2, y - HEIGHT / 2) > RADIUS - 2;
+      if (onRim(ax, ay) && onRim(bx, by)) {
+        worstHop = Math.max(worstHop, Math.hypot(ax - bx, ay - by));
+      }
+    }
+    if (worstHop > RADIUS * 0.3) {
+      fail.push(`limb closed with a straight chord: ${worstHop.toFixed(1)}px jump on the rim`);
+    }
   }
 
   console.log(fail.length ? `FAIL\n - ${fail.join("\n - ")}` : "all globe interaction checks passed");

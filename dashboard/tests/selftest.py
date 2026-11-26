@@ -684,7 +684,7 @@ def main():
               coast["ok"] is True and coast["scale"] == 100
               and coast["rings"][0][:2] == [-1000, 4000], list(coast)[:4])
         check("tv globe draws the polygons",
-              "/api/map/coast" in tv_js and "clipToHorizon" in tv_js)
+              "/api/map/coast" in tv_js and "coastPaths" in tv_js)
         check("land rasteriser fills the polygon",
               any(start <= 180 <= end for start, end in land_grid["rows"][45]),
               land_grid["rows"][45])

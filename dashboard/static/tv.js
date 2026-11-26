@@ -129,7 +129,8 @@
   // real coastlines: rings of unit vectors, filled and stroked as polygons
   let COAST_RINGS = null;
   const coastView = [];
-  const coastClip = [];
+  const coastFill = [];          // closed sub-paths, including the limb closure
+  const coastStroke = [];        // open sub-paths, the visible coastline only
 
   function rotateRing(ring, cosR, sinR, cosT, sinT) {
     coastView.length = 0;
@@ -141,26 +142,84 @@
     return coastView;
   }
 
-  // keep the part of a ring in front of the camera (Sutherland–Hodgman on z > 0)
-  // and lift the cut points back onto the sphere so the edge follows the limb
-  function clipToHorizon(points) {
-    coastClip.length = 0;
-    const count = points.length / 3;
+  // the visible part of a ring, walked as runs. Where a run dives behind the
+  // globe it is closed with an arc along the limb: a straight line back to the
+  // other end would cut across the disc and smear a wedge over the face
+  function coastPaths(ring, cosR, sinR, cosT, sinT, fills, strokes) {
+    const p = rotateRing(ring, cosR, sinR, cosT, sinT);
+    const count = p.length / 3;
+    const point = (index) => [p[(index % count) * 3], p[(index % count) * 3 + 1]];
+    const depth = (index) => p[(index % count) * 3 + 2];
+
+    let hidden = -1;
     for (let index = 0; index < count; index += 1) {
-      const a = index * 3;
-      const b = ((index + 1) % count) * 3;
-      const az = points[a + 2];
-      const bz = points[b + 2];
-      if (az > 0) coastClip.push(points[a], points[a + 1], az);
-      if ((az > 0) !== (bz > 0)) {
-        const t = az / (az - bz);
-        const x = points[a] + (points[b] - points[a]) * t;
-        const y = points[a + 1] + (points[b + 1] - points[a + 1]) * t;
-        const len = Math.hypot(x, y) || 1;
-        coastClip.push(x / len, y / len, 0);
+      if (depth(index) <= 0) {
+        hidden = index;
+        break;
       }
     }
-    return coastClip;
+
+    if (hidden < 0) {                       // the whole ring faces us
+      const poly = [];
+      for (let index = 0; index < count; index += 1) poly.push(point(index));
+      fills.push(poly);
+      strokes.push(poly.concat([poly[0]]));  // close the outline
+      return;
+    }
+
+    // where the segment from a hidden point to a visible one meets the limb
+    const crossing = (from, to) => {
+      const az = depth(from);
+      const bz = depth(to);
+      const t = az / (az - bz);
+      const [ax, ay] = point(from);
+      const [bx, by] = point(to);
+      const x = ax + (bx - ax) * t;
+      const y = ay + (by - ay) * t;
+      const len = Math.hypot(x, y) || 1;
+      return [x / len, y / len];
+    };
+
+    // the limb between two crossing points, the short way round
+    const limbArc = (from, to) => {
+      const start = Math.atan2(from[1], from[0]);
+      let sweep = Math.atan2(to[1], to[0]) - start;
+      while (sweep > Math.PI) sweep -= Math.PI * 2;
+      while (sweep < -Math.PI) sweep += Math.PI * 2;
+      const steps = Math.max(1, Math.ceil(Math.abs(sweep) / 0.15));
+      const out = [];
+      for (let step = 1; step < steps; step += 1) {
+        const angle = start + (sweep * step) / steps;
+        out.push([Math.cos(angle), Math.sin(angle)]);
+      }
+      out.push(to);
+      return out;
+    };
+
+    let run = null;
+    for (let step = 0; step <= count; step += 1) {
+      const index = (hidden + step) % count;
+      const visible = step < count && depth(index) > 0;
+      if (visible) {
+        if (!run) run = { points: [], entry: crossing((index - 1 + count) % count, index) };
+        run.points.push(point(index));
+      } else if (run) {
+        run.exit = crossing((index - 1 + count) % count, index);
+        const stroke = [run.entry, ...run.points, run.exit];
+        strokes.push(stroke);
+        fills.push(stroke.concat(limbArc(run.exit, run.entry)));
+        run = null;
+      }
+    }
+  }
+
+  function tracePath(path, cx, cy, radius, close) {
+    if (!path.length) return;
+    ctx.moveTo(cx + path[0][0] * radius, cy - path[0][1] * radius);
+    for (let index = 1; index < path.length; index += 1) {
+      ctx.lineTo(cx + path[index][0] * radius, cy - path[index][1] * radius);
+    }
+    if (close) ctx.closePath();
   }
 
   const fmt = (value) => {
@@ -729,22 +788,17 @@
     const sinT = Math.sin((state.tilt * Math.PI) / 180);
 
     if (COAST_RINGS) {
-      ctx.beginPath();
+      coastFill.length = 0;
+      coastStroke.length = 0;
       for (const ring of COAST_RINGS) {
-        const view = rotateRing(ring, cosR, sinR, cosT, sinT);
-        const clipped = clipToHorizon(view);
-        const count = clipped.length / 3;
-        if (count < 3) continue;
-        for (let index = 0; index < count; index += 1) {
-          const x = cx + clipped[index * 3] * radius;
-          const y = cy - clipped[index * 3 + 1] * radius;
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
+        coastPaths(ring, cosR, sinR, cosT, sinT, coastFill, coastStroke);
       }
+      ctx.beginPath();
+      for (const path of coastFill) tracePath(path, cx, cy, radius, true);
       ctx.fillStyle = "rgba(96,186,224,.19)";
       ctx.fill("evenodd");                  // lakes stay open
+      ctx.beginPath();
+      for (const path of coastStroke) tracePath(path, cx, cy, radius, false);
       ctx.strokeStyle = "rgba(122,206,242,.45)";
       ctx.lineWidth = 1;
       ctx.stroke();
