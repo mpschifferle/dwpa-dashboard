@@ -1,0 +1,11 @@
+# dashboard runtime state (do not commit)
+settings.json
+keys.jsonl
+geo.json
+world.json
+land.json
+session.log
+session.log.1
+
+__pycache__/
+*.pyc

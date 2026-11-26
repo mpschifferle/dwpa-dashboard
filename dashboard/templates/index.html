@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>help_crack dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="live-dot" id="live-dot" title="dashboard connection"></span>
+      <div>
+        <h1>help_crack <span class="muted">dashboard</span></h1>
+        <div class="sub">dwpa distributed WPA cracker ·
+          <a href="https://wpa-sec.stanev.org" target="_blank" rel="noopener noreferrer">wpa-sec.stanev.org</a>
+          · client v{{ version }}</div>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="pill" id="state-pill">connecting…</span>
+      <span class="pill phase" id="phase-pill">—</span>
+      <span class="pill gpu" id="gpu-pill" hidden>gpu only</span>
+      <span class="meta" id="meta-uptime"></span>
+      <span class="meta" id="meta-pid"></span>
+      <a class="btn" id="btn-tv" href="/tv" target="_blank" rel="noopener" title="full-screen view for a second monitor">TV</a>
+      <button class="btn" id="btn-options" type="button">Options</button>
+      <button class="btn primary" id="btn-start" type="button">Start</button>
+      <button class="btn danger" id="btn-stop" type="button" disabled>Stop</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="col">
+      <section class="card">
+        <div class="card-head">
+          <h2>Cracker</h2>
+          <span class="mono muted" id="cracker-name">—</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <span class="kpi-label">Status</span>
+            <span class="kpi-value" id="k-status">—</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Speed</span>
+            <span class="kpi-value" id="k-speed">—</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Progress</span>
+            <span class="kpi-value" id="k-progress">—</span>
+            <div class="bar"><i id="k-progress-bar"></i></div>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Recovered</span>
+            <span class="kpi-value" id="k-recovered">—</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">ETA</span>
+            <span class="kpi-value" id="k-eta">—</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Hardware</span>
+            <span class="kpi-value" id="k-gpu">—</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Devices</span>
+            <span class="kpi-value" id="k-devices">probing…</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Session</h2>
+          <span class="mono muted ellipsis" id="session-command"></span>
+        </div>
+        <div class="kpi-grid tight">
+          <div class="kpi"><span class="kpi-label">Keys cracked</span><span class="kpi-value big" id="s-keys">0</span></div>
+          <div class="kpi"><span class="kpi-label">Cracking runs</span><span class="kpi-value big" id="s-sessions">0</span></div>
+          <div class="kpi"><span class="kpi-label">Last run</span><span class="kpi-value big" id="s-last">—</span></div>
+          <div class="kpi"><span class="kpi-label">Dictionaries</span><span class="kpi-value big" id="s-dictcount">—</span></div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-keys" height="110"></canvas>
+          <div class="chart-caption mono muted">cracked keys, last 12 hours</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Live log</h2>
+          <div class="card-tools">
+            <input type="text" id="stdin-input" class="input mono" placeholder="stdin ›" size="12"
+                   title="send a line to the running help_crack process" disabled>
+            <label class="check"><input type="checkbox" id="log-follow" checked> follow</label>
+            <select id="log-level" class="select">
+              <option value="all">all</option>
+              <option value="warn">warnings</option>
+              <option value="error">errors</option>
+            </select>
+            <button class="btn tiny" id="btn-log-clear" type="button">clear</button>
+          </div>
+        </div>
+        <pre class="log" id="log" aria-live="polite"></pre>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <div class="card-head">
+          <h2>Work package</h2>
+          <span class="pill subtle" id="pkg-state">idle</span>
+        </div>
+        <dl class="facts">
+          <dt>hkey</dt><dd class="mono" id="pkg-hkey">—</dd>
+          <dt>hashes</dt><dd id="pkg-hashes">—</dd>
+          <dt>dictionaries</dt><dd id="pkg-dicts">—</dd>
+          <dt>rules</dt><dd id="pkg-rules">—</dd>
+          <dt>dynamic dictionary</dt><dd id="pkg-prdict">—</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Hashes in current job</h2>
+          <span class="muted mono" id="hash-count">0</span>
+        </div>
+        <div class="table-wrap short">
+          <table class="table" id="hash-table">
+            <thead><tr><th>cc</th><th>type</th><th>ssid</th><th>bssid</th><th>station</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Cracked keys</h2>
+          <div class="card-tools">
+            <input type="search" id="key-filter" class="input" placeholder="filter…">
+            <button class="btn tiny" id="btn-site" type="button"
+                    title="compare your cracked keys with the nets the site credits to your key">site</button>
+            <a class="btn tiny" href="/api/keys/export?fmt=csv">csv</a>
+            <a class="btn tiny" href="/api/keys/export?fmt=json">json</a>
+          </div>
+        </div>
+        <div class="table-wrap tall">
+          <table class="table" id="key-table">
+            <thead><tr><th>cc</th><th>when</th><th>ssid</th><th>bssid</th><th>password</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-foot">
+          <span class="muted mono" id="key-count">0 keys</span>
+          <button class="btn tiny danger" id="btn-keys-clear" type="button">forget history</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="options-dialog">
+    <form method="dialog" id="options-form" novalidate>
+      <div class="dialog-head">
+        <h2>Options</h2>
+        <button class="btn tiny" type="button" id="btn-options-x" title="close (Esc)" aria-label="close">✕</button>
+      </div>
+      <p class="muted small">Applied to the next Start. The dashboard never edits help_crack.py.</p>
+      <label class="check row"><input type="checkbox" name="gpu_only"> GPU only — refuse to start without a GPU device</label>
+      <label class="check row"><input type="checkbox" name="client_update"> Allow help_crack.py to self-update when the site offers a newer client</label>
+      <label class="check row"><input type="checkbox" name="remote_enabled"> Site lookups — country flags &amp; stats from the public wpa-sec pages</label>
+      <label>working directory<input name="workdir" class="input mono" autocomplete="off"></label>
+      <label>python interpreter<input name="python" class="input mono" autocomplete="off"></label>
+      <label>client script<input name="script" class="input mono" autocomplete="off"></label>
+      <label>custom cracker options (-co)<input name="coptions" class="input mono" placeholder="--workload-profile 3" autocomplete="off"></label>
+      <label>potfile (-pot)<input name="potfile" class="input mono" autocomplete="off"></label>
+      <label>additional dictionary (-ad)<input name="additional" class="input mono" autocomplete="off"></label>
+      <label>artifact poll interval (s)<input name="poll_interval" class="input mono" type="number" step="any" min="0.2" max="30"></label>
+      <div class="dialog-actions">
+        <button class="btn" id="btn-probe" type="button">Detect GPU</button>
+        <span class="spacer"></span>
+        <button class="btn" id="btn-options-cancel" type="button">Cancel</button>
+        <button class="btn primary" id="btn-save-options" value="save" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
+
+

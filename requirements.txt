@@ -1,0 +1,2 @@
+# dashboard dependencies (help_crack.py itself needs none)
+flask>=3.0
