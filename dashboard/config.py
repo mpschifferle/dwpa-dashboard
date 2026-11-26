@@ -23,6 +23,7 @@ SESSION_LOG = PKG_DIR / "session.log"
 GEO_FILE = PKG_DIR / "geo.json"
 WORLD_FILE = PKG_DIR / "world.json"
 LAND_FILE = PKG_DIR / "land.json"
+COAST_FILE = PKG_DIR / "coast.json"
 
 DEFAULTS = {
     "host": "127.0.0.1",

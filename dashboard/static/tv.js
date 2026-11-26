@@ -126,6 +126,43 @@
 
   LAND_CELLS = buildLandCells(landGrid);
 
+  // real coastlines: rings of unit vectors, filled and stroked as polygons
+  let COAST_RINGS = null;
+  const coastView = [];
+  const coastClip = [];
+
+  function rotateRing(ring, cosR, sinR, cosT, sinT) {
+    coastView.length = 0;
+    for (const [x, y, z] of ring) {
+      const xr = x * cosR + z * sinR;
+      const zr0 = z * cosR - x * sinR;
+      coastView.push(xr, y * cosT - zr0 * sinT, y * sinT + zr0 * cosT);
+    }
+    return coastView;
+  }
+
+  // keep the part of a ring in front of the camera (Sutherland–Hodgman on z > 0)
+  // and lift the cut points back onto the sphere so the edge follows the limb
+  function clipToHorizon(points) {
+    coastClip.length = 0;
+    const count = points.length / 3;
+    for (let index = 0; index < count; index += 1) {
+      const a = index * 3;
+      const b = ((index + 1) % count) * 3;
+      const az = points[a + 2];
+      const bz = points[b + 2];
+      if (az > 0) coastClip.push(points[a], points[a + 1], az);
+      if ((az > 0) !== (bz > 0)) {
+        const t = az / (az - bz);
+        const x = points[a] + (points[b] - points[a]) * t;
+        const y = points[a + 1] + (points[b + 1] - points[a + 1]) * t;
+        const len = Math.hypot(x, y) || 1;
+        coastClip.push(x / len, y / len, 0);
+      }
+    }
+    return coastClip;
+  }
+
   const fmt = (value) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return "—";
@@ -399,7 +436,30 @@
     }
   }
 
-  // real coastlines: the 1-degree grid, built once server-side from Natural Earth
+  // smooth coastlines: real polygons, built once server-side from Natural Earth
+  async function loadCoast() {
+    try {
+      const response = await fetch("/api/map/coast");
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data.ok || !Array.isArray(data.rings) || !data.rings.length) return;
+      const scale = Number(data.scale) || 100;
+      COAST_RINGS = data.rings.map((ring) => {
+        const points = new Array(ring.length / 2);
+        for (let index = 0; index < ring.length; index += 2) {
+          const lat = ((ring[index + 1] / scale) * Math.PI) / 180;
+          const lon = ((ring[index] / scale) * Math.PI) / 180;
+          points[index / 2] = [Math.cos(lat) * Math.sin(lon), Math.sin(lat),
+                               Math.cos(lat) * Math.cos(lon)];
+        }
+        return points;
+      });
+    } catch (err) {
+      /* the grid fallback stays in place */
+    }
+  }
+
+  // the 1-degree grid, only needed when the polygon data is unavailable
   async function loadLand() {
     try {
       const response = await fetch("/api/map/land");
@@ -600,38 +660,63 @@
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // landmass: all visible cells go into one path, so shared edges do not
-    // double-blend and the alpha stays even
+    // landmass. With the Natural Earth rings this is a real polygon fill with a
+    // coastline stroke, clipped at the horizon; the 1-degree grid is only the
+    // fallback when that data is unavailable.
     const cosR = Math.cos((state.rotation * Math.PI) / 180);
     const sinR = Math.sin((state.rotation * Math.PI) / 180);
     const cosT = Math.cos((state.tilt * Math.PI) / 180);
     const sinT = Math.sin((state.tilt * Math.PI) / 180);
-    ctx.beginPath();
-    for (const cell of LAND_CELLS) {
-      let facing = true;
-      const sx = [];
-      const sy = [];
-      for (const [x, y, z] of cell) {
-        const xr = x * cosR + z * sinR;
-        const zr0 = z * cosR - x * sinR;
-        const yr = y * cosT - zr0 * sinT;
-        const zr = y * sinT + zr0 * cosT;
-        if (zr <= 0.02) {
-          facing = false;
-          break;
+
+    if (COAST_RINGS) {
+      ctx.beginPath();
+      for (const ring of COAST_RINGS) {
+        const view = rotateRing(ring, cosR, sinR, cosT, sinT);
+        const clipped = clipToHorizon(view);
+        const count = clipped.length / 3;
+        if (count < 3) continue;
+        for (let index = 0; index < count; index += 1) {
+          const x = cx + clipped[index * 3] * radius;
+          const y = cy - clipped[index * 3 + 1] * radius;
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
-        sx.push(cx + xr * radius);
-        sy.push(cy - yr * radius);
+        ctx.closePath();
       }
-      if (!facing) continue;
-      ctx.moveTo(sx[0], sy[0]);
-      ctx.lineTo(sx[1], sy[1]);
-      ctx.lineTo(sx[2], sy[2]);
-      ctx.lineTo(sx[3], sy[3]);
-      ctx.closePath();
+      ctx.fillStyle = "rgba(96,186,224,.19)";
+      ctx.fill("evenodd");                  // lakes stay open
+      ctx.strokeStyle = "rgba(122,206,242,.45)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      // fallback: visible cells into one path, so shared edges do not double-blend
+      ctx.beginPath();
+      for (const cell of LAND_CELLS) {
+        let facing = true;
+        const sx = [];
+        const sy = [];
+        for (const [x, y, z] of cell) {
+          const xr = x * cosR + z * sinR;
+          const zr0 = z * cosR - x * sinR;
+          const yr = y * cosT - zr0 * sinT;
+          const zr = y * sinT + zr0 * cosT;
+          if (zr <= 0.02) {
+            facing = false;
+            break;
+          }
+          sx.push(cx + xr * radius);
+          sy.push(cy - yr * radius);
+        }
+        if (!facing) continue;
+        ctx.moveTo(sx[0], sy[0]);
+        ctx.lineTo(sx[1], sy[1]);
+        ctx.lineTo(sx[2], sy[2]);
+        ctx.lineTo(sx[3], sy[3]);
+        ctx.closePath();
+      }
+      ctx.fillStyle = "rgba(96,186,224,.21)";
+      ctx.fill();
     }
-    ctx.fillStyle = "rgba(96,186,224,.21)";
-    ctx.fill();
 
     ctx.strokeStyle = "rgba(76,194,255,.13)";
     for (let lat = -60; lat <= 60; lat += 30) {
@@ -740,7 +825,10 @@
   pollState();
   pollWorld();
   pollStats();
-  void loadLand();
+  void (async () => {
+    await loadCoast();                 // smooth polygons first
+    if (!COAST_RINGS) await loadLand();  // the grid only if those are unavailable
+  })();
   requestAnimationFrame(draw);
 })();
 

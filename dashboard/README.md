@@ -122,7 +122,7 @@ cracked keys are not affected either way, they are kept in `dashboard/keys.jsonl
 | `dashboard/runner.py` | subprocess supervisor, log ring buffer, status parsing, prompt handling |
 | `dashboard/gpu.py` | tool detection and GPU-only enforcement (`hashcat -I` parsing) |
 | `dashboard/site.py` | read-only client for the public site pages (country, stats, founds) |
-| `dashboard/landdata.py` | Natural Earth land polygons → 1-degree grid for the globe |
+| `dashboard/landdata.py` | Natural Earth land polygons → coastlines and the grid fallback |
 | `dashboard/store.py` | parsers for the artifact files and key history |
 | `dashboard/config.py` | persisted settings |
 | `dashboard/templates/index.html` | single page UI |
@@ -149,7 +149,8 @@ Every endpoint returns JSON. `POST` bodies are JSON objects.
 | `POST` | `/api/site/geo` | country + known/cracked flag per BSSID (public search, cached) |
 | `POST` | `/api/site/account` | your founds + a verdict per locally cracked key |
 | `GET` | `/api/site/world` | saved country tally for the globe (instant; `?refresh=1` samples now) |
-| `GET` | `/api/map/land` | 1-degree land grid for the globe (built once from Natural Earth) |
+| `GET` | `/api/map/coast` | coastline polygons for the globe (smooth; built once from Natural Earth) |
+| `GET` | `/api/map/land` | 1-degree land grid, the globe's fallback (built once from Natural Earth) |
 | `GET` | `/api/site/stats` | the public statistics page as label/value pairs |
 | `GET` | `/api/health` | liveness probe |
 
@@ -280,13 +281,15 @@ so the rings, the green chips at the bottom and `yours: 9 in 4` in the caption
 are your keys only. Blue markers and grey chips are the site-wide sample. The TV
 page warms the cache itself, so it works without opening the main page first.
 
-**The coastlines are real data**, not a hand-drawn mask: on first use the
-dashboard fetches Natural Earth's `ne_110m_land` polygons (public domain — no
-attribution required, but thanks anyway), rasterises them to a 1-degree grid
-(≈ 9 kB of JSON, ~5 s, once) and caches the result in `dashboard/land.json`. The
-page renders that grid; if the file is missing and downloads are off it falls
-back to a built-in 5-degree mask so the globe always shows *something*. Delete
-`land.json` to rebuild it.
+**The coastlines are real vector polygons**, not a hand-drawn mask: on first use
+the dashboard fetches Natural Earth's `ne_110m_land` polygons (public domain — no
+attribution required, but thanks anyway), converts them to 128 rings / ~5 k points
+(hundredths of a degree, ≈ 54 kB of JSON) in about a tenth of a second and caches
+them in `dashboard/coast.json`. The page fills and outlines those rings, cutting
+each one at the horizon so the edge follows the limb. If that file is missing and
+downloads are off it falls back to a 1-degree raster (`dashboard/land.json`, built
+the same way) and, failing that, to a built-in 5-degree mask — the globe always
+shows *something*. Delete `coast.json` to rebuild it.
 
 What `?stats` gives, and the TV wall shows:
 
@@ -305,7 +308,8 @@ sits next to the code in `dashboard/`, written by your own runs:
 | `keys.jsonl` | every key you cracked: ssid, bssid, password, timestamp | it is other people's Wi-Fi and passwords |
 | `geo.json` | bssid → country, plus known/cracked flags | your captures' locations |
 | `world.json` | the saved site tally: counts, samples, first/last sample time | your sampling history |
-| `land.json` | the 1-degree coastline grid | runtime cache of public-domain data |
+| `land.json` | the 1-degree coastline grid (globe fallback) | runtime cache of public-domain data |
+| `coast.json` | the coastline polygons the globe actually draws | runtime cache of public-domain data |
 | `settings.json` | your options, possibly a site key | may hold a key |
 
 Every writer is atomic (`write .tmp`, then rename), so a hard kill or a power cut

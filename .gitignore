@@ -54,6 +54,7 @@ dashboard/keys.jsonl
 dashboard/geo.json
 dashboard/world.json
 dashboard/land.json
+dashboard/coast.json
 dashboard/session.log
 dashboard/session.log.1
 *.tmp

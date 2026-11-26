@@ -20,6 +20,7 @@ DEFAULT_SOURCE = ("https://raw.githubusercontent.com/nvkelso/natural-earth-vecto
                   "master/geojson/ne_110m_land.geojson")
 USER_AGENT = "hc-dashboard/1.0 (local help_crack dashboard)"
 STEP = 1          # degrees per cell; 1 deg = 360 x 180 cells
+COAST_SCALE = 100  # coastline coordinates are stored in hundredths of a degree
 _LOCK = threading.Lock()
 
 
@@ -33,6 +34,51 @@ def _rings(geojson):
         for polygon in polygons:
             for ring in polygon:
                 yield [(float(point[0]), float(point[1])) for point in ring]
+
+
+def fetch(source, timeout=60):
+    """download and parse the land polygons"""
+    request = Request(source, headers={"User-Agent": USER_AGENT})
+    with urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def coast_rings(geojson, scale=COAST_SCALE):
+    """polygon rings as flat lists of hundredths of a degree (lon, lat, lon, lat…)
+
+    Drawing these as real polygons gives smooth coastlines; the 1-degree grid
+    below is only the fallback for when this data is not available.
+    """
+    rings = []
+    for ring in _rings(geojson):
+        points = []
+        previous = None
+        for lon, lat in ring:
+            pair = (int(round(lon * scale)), int(round(lat * scale)))
+            if pair != previous:
+                points.extend(pair)
+                previous = pair
+        # a closed ring repeats its first point; the renderer closes it itself
+        if len(points) >= 8 and points[0] == points[-2] and points[1] == points[-1]:
+            points = points[:-2]
+        if len(points) >= 8:
+            rings.append(points)
+    return rings
+
+
+def build_coast(dest, source=DEFAULT_SOURCE, timeout=60):
+    """download + convert to coastline rings; returns (ring count, point count)"""
+    data = {
+        "scale": COAST_SCALE,
+        "source": source,
+        "built": round(time.time(), 3),
+        "rings": coast_rings(fetch(source, timeout)),
+    }
+    tmp = f"{dest}.tmp"
+    with open(tmp, "w", encoding="utf-8") as fd:
+        json.dump(data, fd, separators=(",", ":"))
+    os.replace(tmp, dest)
+    return len(data["rings"]), sum(len(ring) // 2 for ring in data["rings"])
 
 
 def _inside(lon, lat, ring):
@@ -88,11 +134,7 @@ def rasterise(geojson, step=STEP):
 
 def build(dest, source=DEFAULT_SOURCE, timeout=60):
     """download + rasterise + write; returns the number of cells written"""
-    request = Request(source, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=timeout) as response:
-        geojson = json.loads(response.read().decode("utf-8"))
-
-    data = rasterise(geojson)
+    data = rasterise(fetch(source, timeout))
     data["source"] = source
     data["built"] = round(time.time(), 3)
 
@@ -129,3 +171,31 @@ def ensure(dest, source=DEFAULT_SOURCE):
         except (HTTPError, URLError, OSError, ValueError):
             return None, False
         return load(dest), True
+
+
+def load_coast(dest):
+    """the cached coastline rings, or None"""
+    try:
+        with open(dest, "r", encoding="utf-8") as fd:
+            data = json.load(fd)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or not data.get("rings"):
+        return None
+    return data
+
+
+def ensure_coast(dest, source=DEFAULT_SOURCE):
+    """load the coastline cache, building it once if it does not exist yet"""
+    cached = load_coast(dest)
+    if cached:
+        return cached, False
+    with _LOCK:
+        cached = load_coast(dest)
+        if cached:
+            return cached, False
+        try:
+            build_coast(dest, source)
+        except (HTTPError, URLError, OSError, ValueError):
+            return None, False
+        return load_coast(dest), True

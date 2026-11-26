@@ -27,7 +27,8 @@ if __package__ in (None, ""):  # allow "python dashboard/app.py"
 from flask import Flask, Response, jsonify, render_template, request  # noqa: E402
 
 from dashboard import landdata  # noqa: E402
-from dashboard.config import GEO_FILE, KEYS_FILE, LAND_FILE, SESSION_LOG, Settings  # noqa: E402
+from dashboard.config import (  # noqa: E402
+    COAST_FILE, GEO_FILE, KEYS_FILE, LAND_FILE, SESSION_LOG, Settings)
 from dashboard.runner import Runner  # noqa: E402
 from dashboard.site import SiteClient  # noqa: E402
 from dashboard.store import Store  # noqa: E402
@@ -58,13 +59,14 @@ def _reconcile(keys, founds):
 
 
 def create_app(settings=None, store=None, keys_file=None, session_log=None,
-               probe=None, site=None, land_file=None):
+               probe=None, site=None, land_file=None, coast_file=None):
     """build the Flask application (factory so tests can inject settings)"""
     settings = settings or Settings()
     store = store or Store(settings, keys_file or KEYS_FILE)
     runner = Runner(settings, store, session_log=str(session_log or SESSION_LOG), probe=probe)
     site = site or SiteClient(GEO_FILE)
     land_file = land_file or LAND_FILE
+    coast_file = coast_file or COAST_FILE
 
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.json.sort_keys = False
@@ -252,6 +254,24 @@ def create_app(settings=None, store=None, keys_file=None, session_log=None,
                 return jsonify({"ok": False, "error": "land data unavailable"}), 503
         return jsonify({"ok": True, "built": built, "step": data.get("step") or 1,
                         "rows": data.get("rows") or []})
+
+    @app.get("/api/map/coast")
+    def map_coast():
+        """coastline polygons for the globe (built once from Natural Earth)"""
+        data = landdata.load_coast(str(coast_file))
+        built = False
+        if data is None:
+            if not settings.get("remote_enabled"):
+                return jsonify({"ok": False,
+                                "error": "coastlines not built yet and downloads are off"}), 409
+            try:
+                data, built = landdata.ensure_coast(str(coast_file))
+            except Exception as exc:  # pylint: disable=broad-except
+                return jsonify({"ok": False, "error": f"coastline data failed: {exc}"}), 502
+            if not data:
+                return jsonify({"ok": False, "error": "coastline data unavailable"}), 503
+        return jsonify({"ok": True, "built": built, "scale": data.get("scale") or 100,
+                        "rings": data.get("rings") or []})
 
     @app.get("/api/site/stats")
     def site_stats():

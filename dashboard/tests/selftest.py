@@ -319,12 +319,18 @@ def main():
     land_file = workdir / "land.json"
     land_file.write_text(json.dumps(land_grid), encoding="utf-8")
 
+    # the same square as coastline rings (hundredths of a degree, no duplicate close)
+    coast_rings = landdata.coast_rings(sample_land)
+    coast_file = workdir / "coast.json"
+    coast_file.write_text(json.dumps({"scale": 100, "rings": coast_rings}), encoding="utf-8")
+
     app = create_app(settings,
                      keys_file=workdir / "keys.jsonl",
                      session_log=workdir / "session.log",
                      probe=probe,
                      site=fake_site,
-                     land_file=land_file)
+                     land_file=land_file,
+                     coast_file=coast_file)
     runner = app.extensions["dashboard"]["runner"]
     runner.start_watcher()
 
@@ -664,6 +670,15 @@ def main():
         land = get_json(f"{BASE}/api/map/land")
         check("land grid endpoint",
               land["ok"] is True and land["step"] == 1 and len(land["rows"]) == 180, list(land)[:4])
+        check("coastline rings extracted",
+              len(coast_rings) == 1 and len(coast_rings[0]) == 8
+              and coast_rings[0][:2] == [-1000, 4000], coast_rings[:1])
+        coast = get_json(f"{BASE}/api/map/coast")
+        check("coastline endpoint",
+              coast["ok"] is True and coast["scale"] == 100
+              and coast["rings"][0][:2] == [-1000, 4000], list(coast)[:4])
+        check("tv globe draws the polygons",
+              "/api/map/coast" in tv_js and "clipToHorizon" in tv_js)
         check("land rasteriser fills the polygon",
               any(start <= 180 <= end for start, end in land_grid["rows"][45]),
               land_grid["rows"][45])
