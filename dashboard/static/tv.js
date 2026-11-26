@@ -195,6 +195,67 @@
 
   // ------------------------------------------------------------------ polling
 
+  // hashcat puts a card's numbers on one long line, e.g.
+  //   "Temp: 70c Fan: 54% Util: 96% Core:1920MHz Mem:7001MHz Bus:16"
+  // one cell per number, so the tile never has to cut the line short
+  const HW_ORDER = ["temp", "fan", "util", "core", "mem", "bus", "power"];
+  const HW_NAMES = { pwr: "power" };
+
+  function parseHardware(text) {
+    const cells = [];
+    const pattern = /([A-Za-z]+)\s*:\s*([\d.]+)\s*(%|c|C|W|MHz)?/g;
+    let match = pattern.exec(String(text || ""));
+    while (match) {
+      const unit = match[3] || "";
+      const value = unit === "c" || unit === "C" ? `${match[2]}°`
+        : unit === "MHz" ? match[2] : `${match[2]}${unit}`;
+      cells.push([HW_NAMES[match[1].toLowerCase()] || match[1].toLowerCase(), value]);
+      match = pattern.exec(String(text || ""));
+    }
+    const rank = (name) => {
+      const index = HW_ORDER.indexOf(name);
+      return index < 0 ? HW_ORDER.length : index;
+    };
+    return cells.sort((a, b) => rank(a[0]) - rank(b[0])).slice(0, 6);
+  }
+
+  function renderGpu(progress) {
+    const box = $("k-gpu");
+    if (!box) return;
+    const keys = Object.keys(progress)
+      .filter((key) => /^(?:Hardware\.Mon|HWMon\.GPU)\b/i.test(key))
+      .sort();
+    box.textContent = "";
+    if (!keys.length) {
+      const dash = document.createElement("span");
+      dash.className = "dim";
+      dash.textContent = "—";
+      box.appendChild(dash);
+      return;
+    }
+
+    keys.forEach((key, device) => {
+      const row = document.createElement("div");
+      row.className = "hw";
+      if (keys.length > 1) {
+        const name = document.createElement("span");
+        name.className = "dev";
+        name.textContent = `gpu ${device + 1}`;
+        row.appendChild(name);
+      }
+      for (const [label, value] of parseHardware(progress[key])) {
+        const cell = document.createElement("span");
+        const caption = document.createElement("i");
+        caption.textContent = label;
+        const measure = document.createElement("b");
+        measure.textContent = value;
+        cell.append(caption, measure);
+        row.appendChild(cell);
+      }
+      box.appendChild(row);
+    });
+  }
+
   function renderRunner(data) {
     const runner = data.runner || {};
     const store = data.store || {};
@@ -224,8 +285,7 @@
     setText("k-recovered", recovered
       ? `${recovered[1]} (${Math.round(parseFloat(recovered[2]))}%)` : "—");
 
-    const hw = progress["Hardware.Mon.#01"] || progress["HWMon.GPU.#1"] || "";
-    setText("k-gpu", hw.replace(/Core:[^\s]+|Mem:[^\s]+|Bus:[^\s]+/g, "").replace(/\s+/g, " ").trim() || "—");
+    renderGpu(progress);
 
     renderKeys(store.keys || []);
     if (data.settings) state.settings = data.settings;

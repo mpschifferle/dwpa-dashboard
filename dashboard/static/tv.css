@@ -103,6 +103,33 @@ section { min-width: 0; min-height: 0; }
 .kpi.hero b { font-size: clamp(22px, 2.3vw, 36px); color: var(--accent); }
 .kpi.small b { font-size: clamp(14px, 1.05vw, 18px); }
 
+/* gpu numbers: one cell each, so nothing is truncated */
+.gpustats { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.hw {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px 8px;
+  font-family: var(--mono);
+}
+.hw span { display: flex; flex-direction: column; min-width: 0; }
+.hw i {
+  font-style: normal;
+  font-size: clamp(8px, .6vw, 10px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dim);
+  line-height: 1.2;
+}
+.hw b {
+  font-weight: 600;
+  font-size: clamp(12px, 1vw, 17px);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hw .dev { grid-column: 1 / -1; font-size: clamp(8px, .6vw, 10px); color: var(--dim); }
+
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 .bar { margin-top: 5px; height: 6px; border-radius: 99px; background: #0a1219; overflow: hidden; }

@@ -131,6 +131,7 @@ cracked keys are not affected either way, they are kept in `dashboard/keys.jsonl
 | `dashboard/tests/selftest.py` | end-to-end API test |
 | `dashboard/tests/globe_drag.js` | head-less test of the globe drag / spin timeout |
 | `dashboard/tests/key_badges.js` | head-less test of the cracked-key badges |
+| `dashboard/tests/tv_gpu.js` | head-less test of the TV gpu panel |
 
 ## HTTP API
 
@@ -178,7 +179,9 @@ moves, the spin parks, the countdown runs down and the turn resumes after 30 s.
 `dashboard/tests/key_badges.js` renders the real `static/app.js` against a stub
 DOM — one real key plus one PoW decoy — and asserts that `your work` and `POW`
 land on the right rows, then clicks **site** to check the `uploaded` / `site knew`
-chips. The self test runs both when `node` is on PATH (it skips otherwise).
+chips. `dashboard/tests/tv_gpu.js` feeds the real `static/tv.js` hashcat's single
+long hardware line and checks it becomes six separate cells, and that two cards get
+two captioned blocks. The self test runs all three when `node` is on PATH.
 
 ## Proof-of-work hashes (why some keys are tagged POW)
 
@@ -253,6 +256,11 @@ never written to the log, and `dashboard/settings.json` is git-ignored.
 a second monitor: giant speed/progress/ETA/keys/PoW/GPU numbers, a spinning globe,
 the site's statistics wall, the latest keys with flags, and a one-line log ticker.
 No controls — leave it on a screen.
+
+**GPU numbers get a cell each** — temp, fan, util, core, mem, bus, power — because
+hashcat prints them as one long line (`Temp: 70c Fan: 54% Util: 96% Core:1920MHz…`)
+that used to be cut off with an ellipsis in a narrow tile. With several cards in the
+machine you get one captioned block per card (`gpu 1`, `gpu 2`).
 
 **Drag the globe** (mouse, trackpad or finger) to look anywhere: horizontal drag
 turns it, vertical drag tilts the pole toward you (clamped to ±80°). Let go and it

@@ -273,6 +273,11 @@ def run_badge_harness(check):
     run_node_harness(check, "key_badges.js", "key badges mark your work and the site challenge")
 
 
+def run_gpu_harness(check):
+    """the TV gpu panel, rendered through the real tv.js in node"""
+    run_node_harness(check, "tv_gpu.js", "tv gpu panel splits its numbers")
+
+
 def wait_for(predicate, timeout=40):
     """poll the state endpoint until predicate(state) is true"""
     deadline = time.time() + timeout
@@ -667,6 +672,7 @@ def main():
               "cursor: grab" in tv_css and "touch-action: none" in tv_css)
         run_globe_harness(check)
         run_badge_harness(check)
+        run_gpu_harness(check)
         land = get_json(f"{BASE}/api/map/land")
         check("land grid endpoint",
               land["ok"] is True and land["step"] == 1 and len(land["rows"]) == 180, list(land)[:4])
