@@ -33,7 +33,7 @@ from dashboard.runner import Runner  # noqa: E402
 from dashboard.site import SiteClient  # noqa: E402
 from dashboard.store import Store  # noqa: E402
 
-VERSION = "1.1.0"
+VERSION = "1.0.0"
 
 
 def _reconcile(keys, founds):
