@@ -468,14 +468,21 @@ def main():
         except urllib.error.HTTPError as exc:
             check("stdin rejected while idle", exc.code == 409, f"http {exc.code}")
 
-        # the shipped client must resolve without touching the network
-        real_settings = Settings(workdir / "settings-real.json")
-        real_settings.update({"workdir": str(ROOT), "script": "help_crack.py", "python": sys.executable})
-        probe_runner = Runner(real_settings, app.extensions["dashboard"]["store"])
-        command = probe_runner._command_line()  # pylint: disable=protected-access
-        check("real client command resolution",
-              len(command) == 2 and command[1].endswith("help_crack.py") and Path(command[1]).is_file(),
-              command)
+        # when a real client sits next to the repo its path must resolve; a fresh
+        # clone has none (help_crack.py is deliberately not shipped), so skip —
+        # this checks path resolution, not whether the client is installed
+        client_path = ROOT / "help_crack.py"
+        if client_path.is_file():
+            real_settings = Settings(workdir / "settings-real.json")
+            real_settings.update({"workdir": str(ROOT), "script": "help_crack.py",
+                                  "python": sys.executable})
+            probe_runner = Runner(real_settings, app.extensions["dashboard"]["store"])
+            command = probe_runner._command_line()  # pylint: disable=protected-access
+            check("real client command resolution",
+                  len(command) == 2 and command[1].endswith("help_crack.py")
+                  and Path(command[1]).is_file(), command)
+        else:
+            print("  SKIP  real client command resolution (no help_crack.py in this checkout)")
 
         post_json(f"{BASE}/api/settings", {"script": "does-not-exist.py"})
         try:
