@@ -49,7 +49,10 @@ const payload = (progress) => ({
   logs: { lines: [], next: 0 },
 });
 
-const ONE_CARD = { "Hardware.Mon.#01": "Temp: 70c Fan: 54% Util: 96% Core:1920MHz Mem:7001MHz Bus:16" };
+// copied verbatim from a real hashcat --status line (note "Util:100%", no space)
+const ONE_CARD = {
+  "Hardware.Mon.#01": "Temp: 72c Fan: 57% Util:100% Core:1942MHz Mem:7701MHz Bus:16",
+};
 const TWO_CARDS = {
   "Hardware.Mon.#01": "Temp: 63c Fan: 47% Util: 99%",
   "Hardware.Mon.#02": "Temp: 71c Fan: 51% Util: 98%",
@@ -107,8 +110,8 @@ function cards() {
   let shown = cards();
   if (shown.length !== 1) fail.push(`expected one gpu row, got ${shown.length}`);
   const cells = (shown[0] || { cells: [] }).cells;
-  const expected = [["temp", "70°"], ["fan", "54%"], ["util", "96%"],
-                    ["core", "1920"], ["mem", "7001"], ["bus", "16"]];
+  const expected = [["temp", "72°"], ["fan", "57%"], ["util", "100%"],
+                    ["core", "1942"], ["mem", "7701"], ["bus", "16"]];
   if (JSON.stringify(cells) !== JSON.stringify(expected)) {
     fail.push(`cells are ${JSON.stringify(cells)}, expected ${JSON.stringify(expected)}`);
   }
