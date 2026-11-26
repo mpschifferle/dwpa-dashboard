@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-------------------------------------------------------------------------------
-Third-party components referenced but NOT bundled in this repository:
-
-* help_crack.py - the dwpa client by Alex Stanev, licensed GPL-3.0-or-later.
-  Download it from https://wpa-sec.stanev.org . If you publish a modified copy
-  of that file, it stays under the GPL and this MIT licence does not apply to
-  it.
-* hashcat (MIT) - https://hashcat.net , and John the Ripper (GPL-2.0) for the
-  alternative format. Both are installed separately by the user.

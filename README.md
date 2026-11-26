@@ -1,3 +1,9 @@
+# dwpa-dashboard
+
+A local cockpit for the dwpa / wpa-sec `help_crack.py` client — start and stop a
+run, watch hashcat's live speed and ETA, keep the cracked keys with their
+countries and your-work attribution, and put the whole thing on a wall.
+
 > **!!! ATTENTION: THIS IS VIBECODED !!!**
 > **I DONT KNOW ANYTHING ABOUT CODING BUT I THOUGHT A DASHBOARD WOULD BE COOL**
 
