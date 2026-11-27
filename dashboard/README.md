@@ -52,10 +52,16 @@ streams its console output, and reads the artifacts it writes
   counts how many were solved. Once you use the **site** button, two more chips
   can appear: **`uploaded`** (the site credits this exact net and password to your
   key) and **`site knew`** (the site already had that net cracked with a different
-  password — someone else got there first). Country flags come from the public net
-  search page (cached in `dashboard/geo.json`); a dash means "not a network known
-  to the site", and the panel footer tallies how many countries *your* keys are
-  spread over.
+  password — someone else got there first).
+
+  **Country flags are best-effort, and usually missing.** A network's country
+  lives only in the site's record, and it comes from whoever captured the
+  handshake — `help_crack` hands out *other people's* captures, so the location
+  was never yours to know. In practice most rows show `—`: either the site has no
+  record of that BSSID any more (`?search=` only answers for nets still inside
+  its active window) or it has the record with its `xx` "unknown" flag. Whatever
+  the site does know is cached in `dashboard/geo.json`, and the panel footer
+  tallies how many countries *your* keys are spread over.
 * **Session stats** — keys cracked, cracking runs, last run duration,
   dictionary count, plus a 12-hour crack chart.
 * **TV mode** — `/tv`: full-screen speed/ETA/GPU board, a spinning globe with real
@@ -179,13 +185,14 @@ The globe's interaction is tested too: `dashboard/tests/globe_drag.js` loads
 `static/tv.js` against a stub canvas in node, drags it, and asserts the view
 moves, the spin parks, the countdown runs down and the turn resumes after 30 s.
 `dashboard/tests/key_badges.js` renders the real `static/app.js` against a stub
-DOM — one real key plus one PoW decoy — and asserts that `your work` and `POW`
-land on the right rows, then clicks **site** to check the `uploaded` / `site knew`
-chips. `dashboard/tests/tv_gpu.js` feeds the real `static/tv.js` hashcat's single
+DOM — two real keys plus one PoW decoy — and asserts that `your work` lands on the
+real rows (the `POW` badge survives as a safety net if a decoy ever reached the
+table), then clicks **site** to check the `uploaded` / `site knew` chips.
+`dashboard/tests/tv_gpu.js` feeds the real `static/tv.js` hashcat's single
 long hardware line and checks it becomes six separate cells, and that two cards get
 two captioned blocks. The self test runs all three when `node` is on PATH.
 
-## Proof-of-work hashes (why some keys are tagged POW)
+## Proof-of-work hashes (why the site makes you crack fake networks)
 
 `get_work.php` appends one synthetic hash to every work package:
 
@@ -197,10 +204,20 @@ $pow_hash = sprintf('WPA*01*%s*%s*%s*%s***01', substr($pow_pmkid,0,32),
 Random AP/station MACs, the real SSID, and a `01` marker in the pmkid-info
 field. The client must crack it, otherwise `put_work` drops the `hkey` and the
 results are not accepted. So **one fake "network" is cracked per package, by
-design** — it is an anti-abuse check, not a capture. The dashboard recognises
-the marker, tags those rows `POW` and keeps them out of the cracked-keys count
-and the chart. A `POW` key also never has a country flag, because its BSSID does
-not exist on the site.
+design** — an anti-abuse check, not a capture, and its "password" is just a
+preimage of a fake PMKID.
+
+The dashboard recognises the marker and keeps those rows out of the key list, the
+exports and the chart, while the footer still reports how many were solved:
+
+```
+17 keys · 150 site challenges (POW) solved
+```
+
+That happened here for real: with one decoy per package, 150 finished packages
+had produced 150 fake rows against 17 genuine networks, so the table had become
+90 % noise. They stay in `keys.jsonl` (a few kB) and `counts.pow` still counts
+them; they are simply never presented as keys.
 
 ## Publishing this repository
 
@@ -241,10 +258,13 @@ Pressing **site** in the Cracked keys card does exactly that:
 
 | badge | meaning |
 | --- | --- |
-| `you` | the BSSID is in your `?api&dl=1` founds **and** the password matches what you cracked locally |
-| `someone` | the site has the net cracked, but either with a different password or under someone else's capture |
-| `POW` | the server's proof-of-work check (fake BSSID, see above) |
-| *no badge* | the site does not know this BSSID at all |
+| `your work` | cracked here, on your GPU — on every real row |
+| `uploaded` | the BSSID is in your `?api&dl=1` founds **and** the password matches what you cracked locally |
+| `site knew` | the site has that net cracked, but with a different password — someone else got there first |
+| *(nothing extra)* | the site does not know this BSSID |
+
+The site's proof-of-work decoys never appear here at all (see above), so this
+table only ever talks about real networks.
 
 The footer then reads `site: N founds, M yours`. Everything is read-only: one
 `?api&dl=1` download plus the cached `?search=` lookups, no client protocol calls.
@@ -290,6 +310,13 @@ matters because the site's `?search=` lookup forgets a network once it is pruned
 for older cracks there is simply no country left to find, which is why a key can
 keep a `—` forever while a brand-new one lights up within a minute.
 
+**Expect most of your own keys to have no country**, and the rings to be sparse
+because of it. Measured on this installation: 0 of 17 cracked keys had one — 13
+were not in the site's search index at all and the other 4 were there with the
+site's own `xx` "unknown" flag, while the same `?nets` page was 15/20 geolocated
+for other people's uploads. A location only exists if the person who *captured*
+the handshake had it, and you are cracking someone else's capture.
+
 **Your own cracks are the green rings**: each cracked key's BSSID is looked up on
 the public search page (the same `dashboard/geo.json` cache the key table uses),
 so the rings, the green chips at the bottom and `yours: 9 in 4` in the caption
@@ -321,7 +348,7 @@ sits next to the code in `dashboard/`, written by your own runs:
 | file | holds | why it is git-ignored |
 | --- | --- | --- |
 | `keys.jsonl` | every key you cracked: ssid, bssid, password, timestamp | it is other people's Wi-Fi and passwords |
-| `geo.json` | bssid → country, plus known/cracked flags | your captures' locations |
+| `geo.json` | bssid → country (where the site knows one), plus known/cracked flags | whatever the site revealed about your networks |
 | `world.json` | the saved site tally: counts, samples, first/last sample time | your sampling history |
 | `land.json` | the 1-degree coastline grid (globe fallback) | runtime cache of public-domain data |
 | `coast.json` | the coastline polygons the globe actually draws | runtime cache of public-domain data |

@@ -387,6 +387,7 @@
     if (!code || code === "xx") {
       td.textContent = "—";
       td.classList.add("muted");
+      td.title = "the site has no country for this network";
       return td;
     }
 

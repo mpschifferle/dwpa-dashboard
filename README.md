@@ -1,8 +1,9 @@
 # dwpa-dashboard
 
 A local cockpit for the dwpa / wpa-sec `help_crack.py` client — start and stop a
-run, watch hashcat's live speed and ETA, keep the cracked keys with their
-countries and your-work attribution, and put the whole thing on a wall.
+run, watch hashcat's live speed and ETA, keep the cracked keys with your-work
+attribution (and the site's country flag where there is one), and put the whole
+thing on a wall.
 
 > **!!! ATTENTION: THIS IS VIBECODED !!!**
 > **I DONT KNOW ANYTHING ABOUT CODING BUT I THOUGHT A DASHBOARD WOULD BE COOL**
@@ -10,8 +11,8 @@ countries and your-work attribution, and put the whole thing on a wall.
 A small local web UI for [`help_crack.py`](https://wpa-sec.stanev.org), the
 client of the dwpa distributed WPA cracker. It runs the client as a child
 process, streams its output, and shows the current work package, hashcat's live
-speed/ETA, the cracked keys with country flags, and which of those keys actually
-map to your wpa-sec account.
+speed/ETA, the cracked keys (with the site's country flag when it has one), and
+which of those keys actually map to your wpa-sec account.
 
 <img width="1901" height="876" alt="image" src="https://github.com/user-attachments/assets/35e1d98d-fb07-4c3f-b147-281acc0b6b0c" />
 
