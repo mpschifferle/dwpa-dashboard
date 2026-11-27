@@ -319,9 +319,11 @@ the handshake had it, and you are cracking someone else's capture.
 
 **Your own cracks are the green rings**: each cracked key's BSSID is looked up on
 the public search page (the same `dashboard/geo.json` cache the key table uses),
-so the rings, the green chips at the bottom and `yours: 9 in 4` in the caption
-are your keys only. Blue markers and grey chips are the site-wide sample. The TV
-page warms the cache itself, so it works without opening the main page first.
+so the rings, the green chips at the bottom and the caption's `yours: N in M`
+(nets / countries) cover your keys only — and stay empty while the site has no
+country for them, which is the normal case explained just above. Blue markers and
+grey chips are the site-wide sample. The TV page warms the cache itself, so it
+works without opening the main page first.
 
 **The coastlines are real vector polygons**, not a hand-drawn mask: on first use
 the dashboard fetches Natural Earth's `ne_110m_land` polygons (public domain — no
