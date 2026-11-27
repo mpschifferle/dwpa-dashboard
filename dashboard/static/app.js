@@ -94,6 +94,7 @@
 
     renderProbe(data.probe, runner.gpu_only);
     renderProgress(runner.progress || {});
+    state.counts = store.counts || {};
     renderSession(store, stats);
     renderPackage(store.package);
     renderHashes(store.hashes || []);
@@ -260,10 +261,12 @@
     const visible = needle
       ? keys.filter((k) => `${k.ssid} ${k.bssid} ${k.password}`.toLowerCase().includes(needle))
       : keys;
-    const powCount = keys.filter((k) => k.pow).length;
-    const realCount = keys.length - powCount;
+    const realCount = keys.length;   // the site's challenges are not in this list
     let footer = `${realCount} key${realCount === 1 ? "" : "s"}`;
-    if (powCount) footer += ` · ${powCount} site challenge${powCount === 1 ? "" : "s"} (POW)`;
+    const challenges = Number((state.counts || {}).pow || 0);
+    if (challenges) {
+      footer += ` · ${challenges} site challenge${challenges === 1 ? "" : "s"} (POW) solved`;
+    }
     if (state.account) {
       footer += ` · site: ${state.account.summary.founds} founds, ${state.account.summary.you} yours`;
     }

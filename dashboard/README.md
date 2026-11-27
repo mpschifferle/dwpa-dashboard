@@ -45,15 +45,17 @@ streams its console output, and reads the artifacts it writes
   BSSID and station address.
 * **Cracked keys** — SSID, BSSID, password (click to copy), persisted in
   `dashboard/keys.jsonl`, searchable, exportable as CSV or JSON. Every row was
-  cracked here, on your GPU, so it carries a **`your work`** badge; the site's
-  per-package proof-of-work decoy (a fake PMKID, not a real network) is badged
-  **`POW`** and excluded from the count and the chart. Once you use the **site**
-  button, two more chips can appear: **`uploaded`** (the site credits this exact
-  net and password to your key) and **`site knew`** (the site already had that net
-  cracked with a different password — someone else got there first). Country flags
-  come from the public net search page (cached in `dashboard/geo.json`); a dash
-  means "not a network known to the site", and the panel footer tallies how many
-  countries *your* keys are spread over.
+  cracked here, on your GPU, so it carries a **`your work`** badge. The site's
+  per-package proof-of-work decoy (a fake PMKID, not a real network) is **not
+  listed at all** — each work package contributes exactly one, so after a few
+  hundred packages the table would be nothing but decoys; the panel footer just
+  counts how many were solved. Once you use the **site** button, two more chips
+  can appear: **`uploaded`** (the site credits this exact net and password to your
+  key) and **`site knew`** (the site already had that net cracked with a different
+  password — someone else got there first). Country flags come from the public net
+  search page (cached in `dashboard/geo.json`); a dash means "not a network known
+  to the site", and the panel footer tallies how many countries *your* keys are
+  spread over.
 * **Session stats** — keys cracked, cracking runs, last run duration,
   dictionary count, plus a 12-hour crack chart.
 * **TV mode** — `/tv`: full-screen speed/ETA/GPU board, a spinning globe with real

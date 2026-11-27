@@ -616,6 +616,9 @@ def main():
               snap["counts"]["pow"] >= 1
               and not any(key["bssid"] == "0badc0ffee11" and not key.get("pow")
                           for key in snap["keys"]), snap["counts"])
+        check("pow decoys are not listed as keys",
+              all(not key.get("pow") for key in snap["keys"]) and snap["counts"]["pow"] >= 1,
+              snap["counts"])
 
         # country flags come from the public search page (cached server side)
         geo = post_json(f"{BASE}/api/site/geo", {"bssids": ["aabbccddeeff", "0badc0ffee11"]})

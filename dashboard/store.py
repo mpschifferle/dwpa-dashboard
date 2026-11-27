@@ -232,9 +232,14 @@ class Store():
                 pass
 
     def all_keys(self):
-        """every remembered key, oldest first"""
+        """every remembered network key, oldest first
+
+        The site's proof-of-work challenges are deliberately left out: they are
+        fake PMKIDs, not networks, and after a few hundred work packages they would
+        otherwise drown the real keys in every list and export.
+        """
         with self._lock:
-            return list(self.keys)
+            return [entry for entry in self.keys if not entry.get("pow")]
 
     def _append(self, entry, persist=True):
         """add a key record, ignoring duplicates"""
@@ -411,15 +416,15 @@ class Store():
     def snapshot(self):
         """serialisable view of everything the UI needs"""
         with self._lock:
-            real = sum(1 for entry in self.keys if not entry.get("pow"))
+            real = [entry for entry in self.keys if not entry.get("pow")]
             return {
                 "package": self.package,
                 "hashes": self.hashes,
-                "keys": list(reversed(self.keys))[:500],
+                "keys": list(reversed(real))[:500],
                 "stats": dict(self.stats, durations=list(self.stats["durations"])),
                 "counts": {
-                    "keys": real,
-                    "pow": len(self.keys) - real,
+                    "keys": len(real),
+                    "pow": len(self.keys) - len(real),
                     "hashes": len(self.hashes),
                     "session_hashes": (self.package or {}).get("hash_count", 0),
                 },
