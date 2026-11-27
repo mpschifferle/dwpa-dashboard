@@ -38,6 +38,9 @@ wpskey*.txt
 wpskey*.txt.gz
 prdict.txt
 prdict.txt.gz
+openwall.txt
+wp_*.txt
+*.txt.gz
 
 # bundled cracker (install it yourself, see dashboard/README.md)
 hashcat/
