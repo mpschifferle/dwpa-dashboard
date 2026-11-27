@@ -257,6 +257,11 @@ a second monitor: giant speed/progress/ETA/keys/PoW/GPU numbers, a spinning glob
 the site's statistics wall, the latest keys with flags, and a one-line log ticker.
 No controls — leave it on a screen.
 
+**On a narrow screen** — a phone, or a small browser window — the three-column wall
+collapses into one scrollable column and the globe keeps a real height instead of
+being squeezed to nothing; a phone held sideways drops the statistics wall and
+keeps the numbers plus the globe.
+
 **GPU numbers get a cell each** — temp, fan, util, core, mem, bus, power — because
 hashcat prints them as one long line (`Temp: 70c Fan: 54% Util: 96% Core:1920MHz…`)
 that used to be cut off with an ellipsis in a narrow tile. With several cards in the

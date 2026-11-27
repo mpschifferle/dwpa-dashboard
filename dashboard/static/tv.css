@@ -240,3 +240,54 @@ footer {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* --------------------------------------------------------------- narrow screens
+   The wall layout above assumes a wide display. A phone (or a narrow window) gets
+   one scrollable column instead: the page may scroll, and the globe gets a real
+   height because its old 1fr row has nothing left to grow into. */
+
+@media (max-width: 900px) {
+  html, body { height: auto; min-height: 100%; overflow: visible; }
+  body { grid-template-rows: auto auto auto; }
+
+  header {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 8px 12px 0;
+  }
+  .pillbar { flex-wrap: wrap; gap: 6px; }
+  .pill { font-size: 12px; padding: 3px 10px; }
+
+  main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 6px 12px 12px;
+  }
+
+  .globe { grid-template-rows: auto auto auto; }
+  .globe-wrap { height: 52vh; min-height: 300px; }
+
+  .kpi b { font-size: 17px; }
+  .kpi.hero b { font-size: 32px; }
+  .hw b { font-size: 14px; }
+
+  .keys { overflow: visible; }
+  .keys li { white-space: normal; }
+
+  footer { padding: 0 12px 14px; white-space: normal; }
+}
+
+/* a phone held sideways: two columns, and the stats wall is the part to drop */
+@media (max-height: 560px) and (orientation: landscape) {
+  html, body { height: 100%; overflow: hidden; }
+  body { grid-template-rows: auto 1fr auto; }
+  main {
+    grid-template-columns: minmax(150px, 24vw) minmax(0, 1fr);
+    gap: 8px;
+    padding: 2px 10px 6px;
+  }
+  .site { display: none; }
+  .globe { grid-template-rows: minmax(0, 1fr) auto auto; }
+  .globe-wrap { height: auto; min-height: 0; }
+  header { padding: 4px 10px 0; }
+}
