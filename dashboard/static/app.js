@@ -235,7 +235,7 @@
     for (const hash of hashes) {
       const row = document.createElement("tr");
       row.appendChild(flagCell((state.geo[hash.bssid] || {}).cc));
-      const typeCell = cell(hash.type, "mono", `tag ${hash.type}`.trim());
+      const typeCell = cell(hash.type, "mono c-type", `tag ${hash.type}`.trim());
       if (hash.pow) {
         const tag = document.createElement("span");
         tag.className = "tag POW";
@@ -244,9 +244,9 @@
         typeCell.append(document.createTextNode(" "), tag);
       }
       row.appendChild(typeCell);
-      row.appendChild(cell(hash.ssid || "—"));
-      row.appendChild(cell(hash.bssid || "—", "mono"));
-      row.appendChild(cell(hash.sta || "—", "mono"));
+      row.appendChild(cell(hash.ssid || "—", "c-ssid"));
+      row.appendChild(cell(hash.bssid || "—", "mono c-bssid"));
+      row.appendChild(cell(hash.sta || "—", "mono c-sta"));
       body.appendChild(row);
     }
   }
@@ -301,14 +301,14 @@
       const row = document.createElement("tr");
       const geo = state.geo[key.bssid] || {};
       row.appendChild(flagCell(key.cc || geo.cc));
-      row.appendChild(cell(timeStr(key.ts), "mono muted"));
-      row.appendChild(cell(key.ssid || "—"));
+      row.appendChild(cell(timeStr(key.ts), "mono muted c-when"));
+      row.appendChild(cell(key.ssid || "—", "c-ssid"));
 
-      const bssid = cell(key.bssid || "—", "mono");
+      const bssid = cell(key.bssid || "—", "mono c-bssid");
       bssid.title = key.hkey ? `hkey ${key.hkey}` : "";
       row.appendChild(bssid);
 
-      const password = cell(key.password || "—", "mono pw");
+      const password = cell(key.password || "—", "mono pw c-pw");
       const badges = keyBadges(key);
       if (badges.length) {
         password.textContent = "";

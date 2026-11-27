@@ -68,6 +68,15 @@ streams its console output, and reads the artifacts it writes
   coastlines, the site's recent uploads *and* your own cracks, the wpa-sec
   statistics wall and the latest keys.
 
+**On a phone** — or any window under 760 px — the five-column tables would force a
+sideways scroll, so each row becomes a two-line card instead: what you came for on
+the first line (`ssid` / `password` / `type`), the identifiers underneath (`when`,
+`bssid`, `station`) in smaller muted type, and no horizontal scrolling anywhere.
+The lists also get much more height (45 vh and 70 vh instead of 190/320 px) so
+reading a dozen keys no longer means dragging a tiny inner scrollbar. Measured in
+the Android shell at 445 px wide: `scrollWidth == innerWidth`, rows 52 px tall,
+keys panel 634 px.
+
 ## Quick start
 
 **Windows:** double-click `start-dashboard.bat`. It finds Python, installs Flask
